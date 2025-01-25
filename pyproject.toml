@@ -26,7 +26,9 @@ dev = [
 
 [tool.ruff]
 show-fixes = true
-lint.extend-select = [
+
+[tool.ruff.lint]
+extend-select = [
     "A",    # flake8-builtins
     "AIR",  # Airflow
     "ARG",  # flake8-unused-arguments
@@ -39,7 +41,7 @@ lint.extend-select = [
     "COM",  # flake8-commas
     "DJ",   # flake8-django
     "DTZ",  # flake8-datetimez
-    "E",    # pycodestyle
+    "E",    # pycodestyle error
     "EM",   # flake8-errmsg
     "ERA",  # eradicate
     "EXE",  # flake8-executable
@@ -77,8 +79,9 @@ lint.extend-select = [
     "TRY",  # tryceratops
     "UP",   # pyupgrade
     "YTT",  # flake8-2020
+    "W",    # pycodestyle warning
 ]
-lint.ignore = [
+ignore = [
     "RUF012",
     "RUF100",
     "ARG003",

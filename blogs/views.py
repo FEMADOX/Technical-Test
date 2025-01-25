@@ -6,7 +6,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from blogs.models import Category, Note
-from blogs.serializers import CategoryNoteSerializer, CategorySerializer, NoteSerializer
+from blogs.serializers import (
+    CategoryNoteSerializer,
+    CategorySerializer,
+    NoteSerializer,
+)
 
 # Create your views here.
 

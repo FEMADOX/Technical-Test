@@ -25,11 +25,12 @@ class Note(models.Model):
     """
     Model representing a Note.
     """
+
     STATUS_CHOICES = [
         ("active", "Active"),
         ("archived", "Archived"),
     ]
-    
+
     title = models.CharField(max_length=100)
     categories = models.ManyToManyField(
         Category,
