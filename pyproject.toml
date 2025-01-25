@@ -20,6 +20,7 @@ django-types = [
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.1.0",
     "ruff>=0.9.3",
 ]
 
