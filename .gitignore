@@ -4,6 +4,7 @@
 # User
 *.db
 migrations/
+.ruff_cache
 requirements-dev.txt
 *.code-workspace
 .vscode
