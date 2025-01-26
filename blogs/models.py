@@ -6,6 +6,13 @@ from django.db import models
 class Category(models.Model):
     """
     Model representing a blog category.
+
+    Variables:
+        name: CharField
+        description: TextField
+
+    Returns:
+        Model: Category
     """
 
     name = models.CharField(max_length=100)
@@ -22,8 +29,16 @@ class Category(models.Model):
 
 
 class Note(models.Model):
-    """
-    Model representing a Note.
+    """Model representing a Note model
+
+    Variables:
+        title: CharField
+        categories: ManyToManyField
+        status: CharField
+        content: TextField
+
+    Returns:
+        Model: Note
     """
 
     STATUS_CHOICES = [
