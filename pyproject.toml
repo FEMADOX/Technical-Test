@@ -87,8 +87,9 @@ extend-select = [
     "W",    # pycodestyle warning
 ]
 ignore = [
-    "RUF012",
-    "RUF100",
     "ARG002",
     "ARG003",
+    "RUF012",
+    "RUF100",
+    "TRY300",
 ]

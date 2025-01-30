@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from blogs.filters import NoteFilter
 from blogs.models import Category, Note
+from blogs.permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 from blogs.serializers import (
     CategoryNoteSerializer,
     NoteSerializer,
@@ -17,6 +18,7 @@ from blogs.serializers import (
 class NoteViewSet(viewsets.ModelViewSet):
     queryset = Note.objects.all()
     serializer_class = NoteSerializer
+    permission_classes = [IsOwnerOrReadOnly]
     filterset_class = NoteFilter
     filter_backends = [DjangoFilterBackend]
 
@@ -52,8 +54,12 @@ class NoteViewSet(viewsets.ModelViewSet):
         status_data = request.data.get("status")
 
         if categories_data is not None and title:
-            category_list = [category["name"] for category in categories_data]
-            categories = Category.objects.filter(name__in=category_list)
+            try:
+                category_list = [category["id"] for category in categories_data]
+                categories = Category.objects.filter(id__in=category_list)
+            except KeyError:
+                category_list = [category["name"] for category in categories_data]
+                categories = Category.objects.filter(name__in=category_list)
             note.title = title
             note.categories.set(categories)
             note.content = content or note.content
@@ -80,7 +86,10 @@ class NoteViewSet(viewsets.ModelViewSet):
         content = request.data.get("content")
         status_data = request.data.get("status")
 
-        if not any([title, content, status_data]) and categories_data != []:
+        if (
+            not any([title, categories_data, content, status_data])
+            and categories_data != []
+        ):
             return Response(
                 {"detail": "Please provide at least one field to patch"},
                 status.HTTP_400_BAD_REQUEST,
@@ -88,9 +97,14 @@ class NoteViewSet(viewsets.ModelViewSet):
 
         if title and note.title != title:
             note.title = title
-        if categories_data:
-            category_list = [category["name"] for category in categories_data]
-            categories = Category.objects.filter(name__in=category_list)
+        if categories_data is not None:
+            try:
+                category_list = [category["id"] for category in categories_data]
+                categories = Category.objects.filter(id__in=category_list)
+            except KeyError:
+                category_list = [category["name"] for category in categories_data]
+                categories = Category.objects.filter(name__in=category_list)
+
             # Are the categories of the note the same as the categories in the request?
             current_categories = set(note.categories.values_list("pk", flat=True))
             new_categories = set(categories.values_list("pk", flat=True))
@@ -111,3 +125,4 @@ class NoteViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategoryNoteSerializer
+    permission_classes = [IsAdminOrReadOnly]

@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 
 # Create your models here.
@@ -50,6 +51,11 @@ class Note(models.Model):
     categories = models.ManyToManyField(
         Category,
         related_name="notes",
+    )
+    author = models.ForeignKey(
+        User,
+        related_name="notes",
+        on_delete=models.CASCADE,
     )
     status = models.CharField(
         max_length=9,
