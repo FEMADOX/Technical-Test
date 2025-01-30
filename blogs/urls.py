@@ -1,27 +1,25 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
 from blogs.views import (
-    CategoryListView,
-    CategoryNoteCreateDeleteView,
-    CategoryNoteView,
-    NoteDetailView,
-    NoteListView,
-    NoteStatusView,
+    CategoryViewSet,
+    NoteViewSet,
 )
 
+note_view_retrieve = NoteViewSet.as_view(
+    actions={
+        "get": "retrieve",
+        "put": "update",
+        "patch": "partial_update",
+        "delete": "destroy",
+    },
+)
+
+router = DefaultRouter()
+router.register(r"notes", NoteViewSet, "notes")
+router.register(r"categories", CategoryViewSet, "category")
+
 urlpatterns = [
-    path("notes/", NoteListView.as_view(), name="note-list"),
-    path("notes/<str:status>/", NoteStatusView.as_view(), name="notes-by-status"),
-    path("note/<int:note_id>/", NoteDetailView.as_view(), name="note-detail"),
-    path("categories/", CategoryListView.as_view(), name="categories-list"),
-    path(
-        "category/<int:category_id>/",
-        CategoryNoteView.as_view(),
-        name="category-notes",
-    ),
-    path(
-        "note-categories/",
-        CategoryNoteCreateDeleteView.as_view(),
-        name="category-note-create-delete",
-    ),
+    path("notes/note/<int:pk>", note_view_retrieve, name="note-detail"),
+    path("", include(router.urls)),
 ]

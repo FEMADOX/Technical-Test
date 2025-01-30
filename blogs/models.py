@@ -54,9 +54,10 @@ class Note(models.Model):
     status = models.CharField(
         max_length=9,
         choices=STATUS_CHOICES,
+        blank=True,
         default="active",
     )
-    content = models.TextField()
+    content = models.TextField(blank=True, default="NO CONTENT")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 

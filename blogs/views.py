@@ -1,87 +1,113 @@
-from django.db.models import QuerySet
-from django.http import Http404
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from blogs.filters import NoteFilter
 from blogs.models import Category, Note
 from blogs.serializers import (
     CategoryNoteSerializer,
-    CategorySerializer,
     NoteSerializer,
 )
 
 # Create your views here.
 
 
-class NoteListView(generics.ListCreateAPIView):
+class NoteViewSet(viewsets.ModelViewSet):
     queryset = Note.objects.all()
     serializer_class = NoteSerializer
+    filterset_class = NoteFilter
+    filter_backends = [DjangoFilterBackend]
 
+    def create(self, request: Request) -> Response:
+        title = request.data.get("title")
+        categories_data = request.data.get("categories")
+        content = request.data.get("content")
+        status_data = request.data.get("status")
 
-class CategoryListView(generics.ListCreateAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+        if categories_data:
+            category_list = [category["id"] for category in categories_data]
+            categories = Category.objects.filter(id__in=category_list)
+            new_note = Note.objects.create(
+                title=title,
+                content=content,
+                status=status_data,
+            )
+            new_note.categories.set(categories)
 
-
-class NoteDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Note.objects.all()
-    serializer_class = NoteSerializer
-
-    def get_object(self) -> Note:
-        queryset = self.get_queryset()
-        lookup_value = self.kwargs.get("note_id")
-
-        return get_object_or_404(queryset, pk=lookup_value)
-
-
-class NoteStatusView(generics.ListAPIView):
-    queryset = Note.objects.all()
-    serializer_class = NoteSerializer
-
-    def get_queryset(self) -> QuerySet[Note]:
-        queryset = self.get_queryset().filter(status=self.kwargs.get("status"))
-        error = "No notes found with this status"
-
-        if queryset:
-            return queryset
-
-        raise Http404(error)
-
-
-class CategoryNoteView(generics.RetrieveAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategoryNoteSerializer
-    lookup_url_kwarg = "category_id"
-
-
-class CategoryNoteCreateDeleteView(generics.GenericAPIView):
-    serializer_class = CategoryNoteSerializer
-
-    @classmethod
-    def post(cls, request: Request) -> Response:
-        note_id = request.data.get("note_id")
-        category_id = request.data.get("category_id")
-        note = get_object_or_404(Note, pk=note_id)
-        category = get_object_or_404(Category, pk=category_id)
-        note.categories.add(category)
-        note.save()
+            serializer = NoteSerializer(new_note, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(
-            {"status": "category added to note"},
+            {"detail": "categories required"},
+            status.HTTP_400_BAD_REQUEST,
         )
 
-    @classmethod
-    def delete(cls, request: Request) -> Response:
-        note_id = request.data.get("note_id")
-        category_id = request.data.get("category_id")
-        note = get_object_or_404(Note, pk=note_id)
-        category = get_object_or_404(Category, pk=category_id)
-        note.categories.remove(category)
+    def update(self, request: Request, pk: int) -> Response:
+        note = get_object_or_404(Note, pk=pk)
+        title = request.data.get("title")
+        categories_data = request.data.get("categories")
+        content = request.data.get("content")
+        status_data = request.data.get("status")
+
+        if categories_data is not None and title:
+            category_list = [category["name"] for category in categories_data]
+            categories = Category.objects.filter(name__in=category_list)
+            note.title = title
+            note.categories.set(categories)
+            note.content = content or note.content
+            note.status = status_data or note.status
+            note.save()
+
+            serializer = NoteSerializer(note, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        note.title = ""
+        note.categories.clear()
+        note.content = ""
+        note.status = "active"
+
+        serializer = NoteSerializer(note, context={"request": request})
+        return Response(
+            serializer.data,
+            status.HTTP_200_OK,
+        )
+
+    def partial_update(self, request: Request, pk: int) -> Response:
+        note = get_object_or_404(Note, pk=pk)
+        title = request.data.get("title")
+        categories_data = request.data.get("categories")
+        content = request.data.get("content")
+        status_data = request.data.get("status")
+
+        if not any([title, content, status_data]) and categories_data != []:
+            return Response(
+                {"detail": "Please provide at least one field to patch"},
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        if title and note.title != title:
+            note.title = title
+        if categories_data:
+            category_list = [category["name"] for category in categories_data]
+            categories = Category.objects.filter(name__in=category_list)
+            # Are the categories of the note the same as the categories in the request?
+            current_categories = set(note.categories.values_list("pk", flat=True))
+            new_categories = set(categories.values_list("pk", flat=True))
+            if current_categories != new_categories:
+                note.categories.set(categories)
+        elif categories_data == []:
+            note.categories.clear()
+        if content and note.content != content:
+            note.content = content
+        if status_data and note.status != status_data:
+            note.status = status_data
         note.save()
 
-        return Response(
-            {"status": "category removed from note"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        serializer = NoteSerializer(note, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategoryNoteSerializer
